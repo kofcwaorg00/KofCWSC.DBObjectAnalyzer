@@ -48,6 +48,46 @@ Console.WriteLine($"Objects Found : {databaseObjects.Count:N0}");
 Console.WriteLine();
 
 //
+// Diagnostic - Verify object types coming from DatabaseObjectReader
+//
+Console.WriteLine("Database Object Types (Reader)");
+Console.WriteLine("------------------------------");
+
+foreach (var group in databaseObjects
+    .GroupBy(o => o.ObjectType)
+    .OrderBy(g => g.Key))
+{
+    Console.WriteLine($"{group.Key,-30} {group.Count(),5}");
+}
+
+Console.WriteLine();
+
+//
+// Diagnostic - Show any objects still classified as Unknown
+//
+var unknownObjects = databaseObjects
+    .Where(o => o.ObjectType == DatabaseObjectType.Unknown)
+    .ToList();
+
+if (unknownObjects.Count > 0)
+{
+    Console.WriteLine("Unknown Object Types");
+    Console.WriteLine("--------------------");
+
+    foreach (var obj in unknownObjects.Take(25))
+    {
+        Console.WriteLine($"{obj.SqlType,-4} {obj.FullName}");
+    }
+
+    if (unknownObjects.Count > 25)
+    {
+        Console.WriteLine($"... {unknownObjects.Count - 25} more");
+    }
+
+    Console.WriteLine();
+}
+
+//
 // Scan C# Source
 //
 Console.WriteLine("Scanning C# source...");

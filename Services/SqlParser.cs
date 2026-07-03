@@ -8,9 +8,9 @@ namespace KofCWSC.DBObjectAnalyzer.Services;
 public class SqlParser
 {
     public IEnumerable<Dependency> Parse(
-        IEnumerable<SqlToken> tokens,
-        string referencingSchema,
-        string referencingObject)
+    IEnumerable<SqlToken> tokens,
+    string referencingSchema,
+    string referencingObject)
     {
         ArgumentNullException.ThrowIfNull(tokens);
 
@@ -20,16 +20,36 @@ public class SqlParser
 
         for (int i = start; i <= list.Count - 4; i++)
         {
-            if (IsExecProcedureCall(list, i))
+            if (IsProcedureCall(list, i))
             {
+                string schema;
+                string name;
+
+                if (i + 3 < list.Count &&
+                    list[i + 2].TokenType == SqlTokenType.Symbol &&
+                    list[i + 2].Value == ".")
+                {
+                    schema = list[i + 1].Value;
+                    name = list[i + 3].Value;
+                }
+                else
+                {
+                    // Assume current schema when omitted
+                    schema = referencingSchema;
+                    name = list[i + 1].Value;
+                }
+
                 yield return new Dependency(
                     referencingSchema,
                     referencingObject,
-                    list[i + 1].Value,
-                    list[i + 3].Value,
+                    schema,
+                    name,
                     DependencyType.ProcedureCall,
                     list[i].Line);
+
+                continue;
             }
+
             if (IsFunctionCall(list, i))
             {
                 yield return new Dependency(
@@ -39,27 +59,13 @@ public class SqlParser
                     list[i + 2].Value,
                     DependencyType.FunctionCall,
                     list[i].Line);
-            }
 
+                continue;
+            }
         }
     }
 
-    private static bool IsExecProcedureCall(
-        IReadOnlyList<SqlToken> tokens,
-        int index)
-    {
-        return
-            tokens[index].TokenType == SqlTokenType.Keyword &&
-            (tokens[index].Value.Equals("EXEC", StringComparison.OrdinalIgnoreCase) ||
-             tokens[index].Value.Equals("EXECUTE", StringComparison.OrdinalIgnoreCase)) &&
-
-            tokens[index + 1].TokenType == SqlTokenType.Identifier &&
-
-            tokens[index + 2].TokenType == SqlTokenType.Symbol &&
-            tokens[index + 2].Value == "." &&
-
-            tokens[index + 3].TokenType == SqlTokenType.Identifier;
-    }
+    
     private static bool IsFunctionCall(
     IReadOnlyList<SqlToken> tokens,
     int index)
@@ -128,5 +134,38 @@ public class SqlParser
         }
 
         return 0;
+    }
+    private static bool IsProcedureCall(
+    IReadOnlyList<SqlToken> tokens,
+    int index)
+    {
+        if (index + 1 >= tokens.Count)
+            return false;
+
+        // Must start with EXEC or EXECUTE
+        if (tokens[index].TokenType != SqlTokenType.Keyword)
+            return false;
+
+        if (!tokens[index].Value.Equals("EXEC", StringComparison.OrdinalIgnoreCase) &&
+            !tokens[index].Value.Equals("EXECUTE", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        // EXEC dbo.uspSomething
+        if (index + 3 < tokens.Count &&
+            tokens[index + 1].TokenType == SqlTokenType.Identifier &&
+            tokens[index + 2].TokenType == SqlTokenType.Symbol &&
+            tokens[index + 2].Value == "." &&
+            tokens[index + 3].TokenType == SqlTokenType.Identifier)
+        {
+            return true;
+        }
+
+        // EXEC uspSomething
+        if (tokens[index + 1].TokenType == SqlTokenType.Identifier)
+        {
+            return true;
+        }
+
+        return false;
     }
 }

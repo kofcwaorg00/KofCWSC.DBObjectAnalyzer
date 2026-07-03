@@ -50,7 +50,7 @@ public class DatabaseObjectReader
 
             while (await reader.ReadAsync(cancellationToken))
             {
-                var sqlType = reader.GetString(3);
+                var sqlType = reader.GetString(3).Trim();
 
                 var databaseObject = new DatabaseObject
                 {
@@ -62,7 +62,18 @@ public class DatabaseObjectReader
 
                     SqlType = sqlType,
 
-                    ObjectType = sqlType.ToDatabaseObjectType(),
+                    //ObjectType = sqlType.ToDatabaseObjectType(),
+
+                    ObjectType = sqlType switch
+                    {
+                        "P" => DatabaseObjectType.StoredProcedure,
+                        "FN" => DatabaseObjectType.ScalarFunction,
+                        "IF" => DatabaseObjectType.InlineTableValuedFunction,
+                        "TF" => DatabaseObjectType.TableValuedFunction,
+                        "V" => DatabaseObjectType.View,
+                        "TR" => DatabaseObjectType.Trigger,
+                        _ => DatabaseObjectType.Unknown
+                    },
 
                     Definition = reader.IsDBNull(4)
                         ? string.Empty
