@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace KofCWSC.DBObjectAnalyzer.Services;
 
-public class SqlDefinitionScanner
+public class SqlDefinitionCleaner
 {
     public string Clean(string definition)
     {

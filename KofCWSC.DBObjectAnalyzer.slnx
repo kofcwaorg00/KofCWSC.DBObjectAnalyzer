@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="../KofCWSC.DBObjectAnalyzer.Tests/KofCWSC.DBObjectAnalyzer.Tests.csproj" Id="f923c9d0-4b4f-486e-9e9e-8d5c6f227d25" />
   <Project Path="KofCWSC.DBObjectAnalyzer.csproj" />
 </Solution>
