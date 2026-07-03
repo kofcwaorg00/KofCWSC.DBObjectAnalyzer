@@ -33,7 +33,15 @@ public class SqlTokenizer
         "BEGIN",
         "END",
         "AS",
-        "RETURN"
+        "RETURN",
+        "CREATE",
+        "ALTER",
+        "PROCEDURE",
+        "PROC",
+        "FUNCTION",
+        "VIEW",
+        "TRIGGER",
+        "RETURNS"
     };
     public IEnumerable<SqlToken> Tokenize(string sql)
     {

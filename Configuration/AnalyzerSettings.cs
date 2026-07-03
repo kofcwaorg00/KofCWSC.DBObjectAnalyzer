@@ -23,5 +23,6 @@ namespace KofCWSC.DBObjectAnalyzer.Configuration
         public bool ShouldIgnoreFolder(string folderName) =>
             IgnoreFolders.Any(f =>
                 string.Equals(f, folderName, StringComparison.OrdinalIgnoreCase));
+        public bool RunParserDemo { get; set; } = false;
     }
 }

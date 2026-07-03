@@ -16,7 +16,9 @@ public class SqlParser
 
         var list = tokens.ToList();
 
-        for (int i = 0; i <= list.Count - 4; i++)
+        int start = FindBodyStart(list);
+
+        for (int i = start; i <= list.Count - 4; i++)
         {
             if (IsExecProcedureCall(list, i))
             {
@@ -72,5 +74,59 @@ public class SqlParser
             tokens[index + 2].TokenType == SqlTokenType.Identifier &&
             tokens[index + 3].TokenType == SqlTokenType.Symbol &&
             tokens[index + 3].Value == "(";
+    }
+    private static int FindBodyStart(IReadOnlyList<SqlToken> tokens)
+    {
+        for (int i = 0; i < tokens.Count - 1; i++)
+        {
+            if (tokens[i].TokenType != SqlTokenType.Keyword)
+                continue;
+
+            if (!tokens[i].Value.Equals("CREATE", StringComparison.OrdinalIgnoreCase) &&
+                !tokens[i].Value.Equals("ALTER", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (tokens[i + 1].TokenType != SqlTokenType.Keyword)
+                continue;
+
+            switch (tokens[i + 1].Value.ToUpperInvariant())
+            {
+                case "FUNCTION":
+                case "PROCEDURE":
+                case "PROC":
+                case "TRIGGER":
+
+                    // Look for BEGIN (preferred) or AS.
+                    for (int j = i + 2; j < tokens.Count; j++)
+                    {
+                        if (tokens[j].TokenType != SqlTokenType.Keyword)
+                            continue;
+
+                        if (tokens[j].Value.Equals("BEGIN", StringComparison.OrdinalIgnoreCase))
+                            return j + 1;
+
+                        if (tokens[j].Value.Equals("AS", StringComparison.OrdinalIgnoreCase))
+                            return j + 1;
+                    }
+
+                    break;
+
+                case "VIEW":
+
+                    // Views begin immediately after AS.
+                    for (int j = i + 2; j < tokens.Count; j++)
+                    {
+                        if (tokens[j].TokenType == SqlTokenType.Keyword &&
+                            tokens[j].Value.Equals("AS", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return j + 1;
+                        }
+                    }
+
+                    break;
+            }
+        }
+
+        return 0;
     }
 }
