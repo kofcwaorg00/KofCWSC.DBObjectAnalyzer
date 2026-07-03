@@ -14,9 +14,54 @@ public class SqlTokenizer
         if (string.IsNullOrWhiteSpace(sql))
             yield break;
 
-        // Tokenization logic will be implemented
-        // incrementally during V2.
+        int position = 0;
 
-        yield break;
+        while (position < sql.Length)
+        {
+            char c = sql[position];
+
+            // Skip whitespace
+            if (char.IsWhiteSpace(c))
+            {
+                position++;
+                continue;
+            }
+
+            // Identifier
+            if (char.IsLetter(c) || c == '_')
+            {
+                int start = position;
+
+                position++;
+
+                while (position < sql.Length)
+                {
+                    c = sql[position];
+
+                    if (char.IsLetterOrDigit(c) || c == '_')
+                    {
+                        position++;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+                yield return new SqlToken(
+                    SqlTokenType.Identifier,
+                    sql.Substring(start, position - start),
+                    1,          // Line (temporary)
+                    start + 1,  // Column (temporary)
+                    start);
+
+                continue;
+            }
+
+            //
+            // Unknown character
+            //
+            position++;
+        }
     }
 }
