@@ -86,53 +86,53 @@ analysis.ScanStatistics = scanStatistics;
 Console.WriteLine("Analysis complete.");
 Console.WriteLine();
 
-//
-// Parser Demo
-//
-if (settings.RunParserDemo)
-{
-    Console.WriteLine("Running parser demo...");
-    Console.WriteLine();
+////////////
+//////////// Parser Demo
+////////////
+//////////if (settings.RunParserDemo)
+//////////{
+//////////    Console.WriteLine("Running parser demo...");
+//////////    Console.WriteLine();
 
-    var cleaner = new SqlDefinitionCleaner();
-    var tokenizer = new SqlTokenizer();
-    var parser = new SqlParser();
+//////////    var cleaner = new SqlDefinitionCleaner();
+//////////    var tokenizer = new SqlTokenizer();
+//////////    var parser = new SqlParser();
 
-    foreach (var obj in databaseObjects
-        .OrderBy(o => o.FullName))
-    {
-        if (string.IsNullOrWhiteSpace(obj.Definition))
-            continue;
+//////////    foreach (var obj in databaseObjects
+//////////        .OrderBy(o => o.FullName))
+//////////    {
+//////////        if (string.IsNullOrWhiteSpace(obj.Definition))
+//////////            continue;
         
-        var cleanSql = cleaner.Clean(obj.Definition);
-        ////////if (obj.FullName == "dbo.funSYS_GetCouncilForUserID")
-        ////////{
-        ////////    Console.WriteLine(cleanSql);
-        ////////}
-        var tokens = tokenizer.Tokenize(cleanSql);
+//////////        var cleanSql = cleaner.Clean(obj.Definition);
+//////////        ////////if (obj.FullName == "dbo.funSYS_GetCouncilForUserID")
+//////////        ////////{
+//////////        ////////    Console.WriteLine(cleanSql);
+//////////        ////////}
+//////////        var tokens = tokenizer.Tokenize(cleanSql);
 
-        var dependencies = parser.Parse(
-                tokens,
-                obj.Schema,
-                obj.Name)
-                .ToList();
+//////////        var dependencies = parser.Parse(
+//////////                tokens,
+//////////                obj.Schema,
+//////////                obj.Name)
+//////////                .ToList();
 
-        if (dependencies.Count == 0)
-            continue;
+//////////        if (dependencies.Count == 0)
+//////////            continue;
 
-        Console.WriteLine(new string('-', 70));
-        Console.WriteLine(obj.FullName);
-        Console.WriteLine(new string('-', 70));
+//////////        Console.WriteLine(new string('-', 70));
+//////////        Console.WriteLine(obj.FullName);
+//////////        Console.WriteLine(new string('-', 70));
 
-        foreach (var dependency in dependencies.Distinct())
-        {
-            Console.WriteLine(
-                $"{dependency.DependencyType,-18} {dependency.ReferencedFullName}");
-        }
+//////////        foreach (var dependency in dependencies.Distinct())
+//////////        {
+//////////            Console.WriteLine(
+//////////                $"{dependency.DependencyType,-18} {dependency.ReferencedFullName}");
+//////////        }
 
-        Console.WriteLine();
-    }
-}
+//////////        Console.WriteLine();
+//////////    }
+//////////}
 
 
 

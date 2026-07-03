@@ -1,16 +1,22 @@
-﻿using System.Text.RegularExpressions;
-using KofCWSC.DBObjectAnalyzer.Models;
+﻿using KofCWSC.DBObjectAnalyzer.Models;
 
 namespace KofCWSC.DBObjectAnalyzer.Services;
 
+/// <summary>
+/// Builds SQL dependency relationships using the SQL parser.
+/// </summary>
 public class DatabaseDependencyAnalyzer
 {
+    private readonly SqlDefinitionCleaner _cleaner = new();
+    private readonly SqlTokenizer _tokenizer = new();
+    private readonly SqlParser _parser = new();
+
     public void Analyze(List<DatabaseObject> databaseObjects)
     {
         ArgumentNullException.ThrowIfNull(databaseObjects);
 
         //
-        // Clear previous analysis
+        // Clear existing relationships
         //
         foreach (var obj in databaseObjects)
         {
@@ -19,76 +25,76 @@ public class DatabaseDependencyAnalyzer
         }
 
         //
-        // Lookup by object name
+        // Build lookup dictionary
         //
         var lookup = databaseObjects.ToDictionary(
-            o => o.Name,
+            o => o.FullName,
             StringComparer.OrdinalIgnoreCase);
 
         //
-        // Longest names first.
-        // Prevents funSYS_GetName matching funSYS_Get.
+        // Analyze every SQL object
         //
-        var objectNames =
-            databaseObjects
-                .Select(o => Regex.Escape(o.Name))
-                .OrderByDescending(n => n.Length);
-
-        var pattern =
-            $@"(?<![A-Za-z0-9_])({string.Join("|", objectNames)})(?![A-Za-z0-9_])";
-
-        var regex = new Regex(
-            pattern,
-            RegexOptions.IgnoreCase |
-            RegexOptions.Compiled);
-
-        foreach (var databaseObject in databaseObjects)
+        foreach (var obj in databaseObjects)
         {
-            if (string.IsNullOrWhiteSpace(databaseObject.Definition))
+            AnalyzeObject(obj, lookup);
+        }
+
+        //
+        // Build reverse relationships
+        //
+        BuildReferencedBy(databaseObjects);
+    }
+
+    private void AnalyzeObject(
+        DatabaseObject databaseObject,
+        IReadOnlyDictionary<string, DatabaseObject> lookup)
+    {
+        if (string.IsNullOrWhiteSpace(databaseObject.Definition))
+            return;
+
+        var cleaned = _cleaner.Clean(databaseObject.Definition);
+
+        var tokens = _tokenizer.Tokenize(cleaned);
+
+        var dependencies = _parser.Parse(
+            tokens,
+            databaseObject.Schema,
+            databaseObject.Name);
+
+        foreach (var dependency in dependencies)
+        {
+            var key = dependency.ReferencedFullName;
+
+            if (!lookup.TryGetValue(key, out var referencedObject))
                 continue;
 
-            var matches = regex.Matches(databaseObject.Definition);
-
-            foreach (Match match in matches)
+            //
+            // Prevent duplicates
+            //
+            if (databaseObject.References.Any(r =>
+                    ReferenceEquals(r.ReferencedObject, referencedObject)))
             {
-                if (!lookup.TryGetValue(
-                        match.Value,
-                        out var referencedObject))
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                //
-                // Ignore self references.
-                //
-                if (ReferenceEquals(databaseObject, referencedObject))
-                    continue;
+            databaseObject.References.Add(new SqlReference
+            {
+                ReferencingObject = databaseObject,
+                ReferencedObject = referencedObject,
+                ReferenceType = ReferenceType.SqlDependency,
+                Notes = dependency.DependencyType.ToString()
+            });
+        }
+    }
 
-                //
-                // Already recorded?
-                //
-                if (databaseObject.References.Any(r =>
-                    ReferenceEquals(
-                        r.ReferencedObject,
-                        referencedObject)))
-                {
-                    continue;
-                }
-
-                var reference = new SqlReference
-                {
-                    ReferencingObject = databaseObject,
-
-                    ReferencedObject = referencedObject,
-
-                    ReferenceType = ReferenceType.SqlDependency,
-
-                    Notes = "Definition Scan"
-                };
-
-                databaseObject.References.Add(reference);
-
-                referencedObject.ReferencedBy.Add(reference);
+    private static void BuildReferencedBy(
+        IEnumerable<DatabaseObject> databaseObjects)
+    {
+        foreach (var obj in databaseObjects)
+        {
+            foreach (var reference in obj.References)
+            {
+                reference.ReferencedObject.ReferencedBy.Add(reference);
             }
         }
     }
