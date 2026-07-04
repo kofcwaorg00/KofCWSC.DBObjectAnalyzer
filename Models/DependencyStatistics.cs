@@ -7,7 +7,7 @@ public class DependencyStatistics
     public int ProcedureCalls { get; set; }
 
     public int TotalDependencies =>
-        FunctionCalls + ProcedureCalls;
+        FunctionCalls + ProcedureCalls + ViewReferences;
 
     public override string ToString()
     {
@@ -17,7 +17,9 @@ public class DependencyStatistics
             ------------------
             Function Calls : {FunctionCalls,5}
             Procedure Calls: {ProcedureCalls,5}
+            View References: {ViewReferences,5}
             Total          : {TotalDependencies,5}
             """;
     }
+    public int ViewReferences { get; set; }
 }

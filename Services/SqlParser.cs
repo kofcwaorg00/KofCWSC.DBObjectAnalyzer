@@ -62,6 +62,35 @@ public class SqlParser
 
                 continue;
             }
+            if (IsViewReference(list, i))
+            {
+                string schema;
+                string objectName;
+
+                if (list[i + 2].TokenType == SqlTokenType.Symbol &&
+                    list[i + 2].Value == ".")
+                {
+                    // dbo.vewSomething
+                    schema = list[i + 1].Value;
+                    objectName = list[i + 3].Value;
+                }
+                else
+                {
+                    // vewSomething
+                    schema = "dbo";     // Default schema
+                    objectName = list[i + 1].Value;
+                }
+
+                yield return new Dependency(
+                    referencingSchema,
+                    referencingObject,
+                    schema,
+                    objectName,
+                    DependencyType.ViewReference,
+                    list[i].Line);
+
+                continue;
+            }
         }
     }
 
@@ -164,6 +193,54 @@ public class SqlParser
         if (tokens[index + 1].TokenType == SqlTokenType.Identifier)
         {
             return true;
+        }
+
+        return false;
+    }
+    private static bool IsViewReference(
+    IReadOnlyList<SqlToken> tokens,
+    int index)
+    {
+        if (tokens[index].TokenType != SqlTokenType.Keyword)
+            return false;
+
+        var keyword = tokens[index].Value.ToUpperInvariant();
+
+        if (keyword != "FROM" &&
+            keyword != "JOIN")
+        {
+            return false;
+        }
+
+        //
+        // Pattern:
+        // FROM dbo.vewSomething
+        //
+        if (index + 3 < tokens.Count)
+        {
+            if (tokens[index + 1].TokenType == SqlTokenType.Identifier &&
+                tokens[index + 2].TokenType == SqlTokenType.Symbol &&
+                tokens[index + 2].Value == "." &&
+                tokens[index + 3].TokenType == SqlTokenType.Identifier &&
+                tokens[index + 3].Value.StartsWith("vew",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        //
+        // Pattern:
+        // FROM vewSomething
+        //
+        if (index + 1 < tokens.Count)
+        {
+            if (tokens[index + 1].TokenType == SqlTokenType.Identifier &&
+                tokens[index + 1].Value.StartsWith("vew",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
         }
 
         return false;

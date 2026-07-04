@@ -22,6 +22,7 @@ public class DatabaseDependencyAnalyzer
         //
         Statistics.FunctionCalls = 0;
         Statistics.ProcedureCalls = 0;
+        Statistics.ViewReferences = 0;
 
         //
         // Clear existing relationships
@@ -77,6 +78,9 @@ public class DatabaseDependencyAnalyzer
 
                 case DependencyType.ProcedureCall:
                     Statistics.ProcedureCalls++;
+                    break;
+                case DependencyType.ViewReference:
+                    Statistics.ViewReferences++;
                     break;
             }
 
