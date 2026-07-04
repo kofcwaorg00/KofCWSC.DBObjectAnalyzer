@@ -12,11 +12,11 @@ public class SqlDefinitionCleaner
 
         var sql = Normalize(definition);
 
+        sql = RemoveStringLiterals(sql);
+
         sql = RemoveBlockComments(sql);
 
         sql = RemoveSingleLineComments(sql);
-
-        sql = RemoveStringLiterals(sql);
 
         sql = CollapseBlankLines(sql);
 

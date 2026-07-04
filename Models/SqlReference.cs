@@ -27,4 +27,6 @@ public class SqlReference
     {
         return $"{ReferencingObject.FullName} -> {ReferencedObject.FullName}";
     }
+    public DependencyType DependencyType { get; set; }
+    public int LineNumber { get; set; }
 }

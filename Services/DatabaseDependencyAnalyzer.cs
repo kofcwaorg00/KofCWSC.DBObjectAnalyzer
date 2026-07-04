@@ -11,9 +11,17 @@ public class DatabaseDependencyAnalyzer
     private readonly SqlTokenizer _tokenizer = new();
     private readonly SqlParser _parser = new();
 
+    public DependencyStatistics Statistics { get; } = new();
+
     public void Analyze(List<DatabaseObject> databaseObjects)
     {
         ArgumentNullException.ThrowIfNull(databaseObjects);
+
+        //
+        // Reset statistics
+        //
+        Statistics.FunctionCalls = 0;
+        Statistics.ProcedureCalls = 0;
 
         //
         // Clear existing relationships
@@ -38,11 +46,6 @@ public class DatabaseDependencyAnalyzer
         {
             AnalyzeObject(obj, lookup);
         }
-
-        //
-        // Build reverse relationships
-        //
-        BuildReferencedBy(databaseObjects);
     }
 
     private void AnalyzeObject(
@@ -63,39 +66,55 @@ public class DatabaseDependencyAnalyzer
 
         foreach (var dependency in dependencies)
         {
-            var key = dependency.ReferencedFullName;
+            //
+            // Update statistics
+            //
+            switch (dependency.DependencyType)
+            {
+                case DependencyType.FunctionCall:
+                    Statistics.FunctionCalls++;
+                    break;
 
-            if (!lookup.TryGetValue(key, out var referencedObject))
-                continue;
+                case DependencyType.ProcedureCall:
+                    Statistics.ProcedureCalls++;
+                    break;
+            }
 
             //
-            // Prevent duplicates
+            // Locate the referenced database object
             //
-            if (databaseObject.References.Any(r =>
-                    ReferenceEquals(r.ReferencedObject, referencedObject)))
+            if (!lookup.TryGetValue(
+                    dependency.ReferencedFullName,
+                    out var referencedObject))
             {
                 continue;
             }
 
-            databaseObject.References.Add(new SqlReference
+            //
+            // Prevent duplicate edges
+            //
+            if (databaseObject.References.Any(r =>
+                    ReferenceEquals(r.ReferencedObject, referencedObject) &&
+                    r.DependencyType == dependency.DependencyType))
+            {
+                continue;
+            }
+
+            //
+            // Create one edge and attach it to both objects
+            //
+            var reference = new SqlReference
             {
                 ReferencingObject = databaseObject,
                 ReferencedObject = referencedObject,
                 ReferenceType = ReferenceType.SqlDependency,
-                Notes = dependency.DependencyType.ToString()
-            });
-        }
-    }
+                DependencyType = dependency.DependencyType,
+                LineNumber = dependency.LineNumber
+            };
 
-    private static void BuildReferencedBy(
-        IEnumerable<DatabaseObject> databaseObjects)
-    {
-        foreach (var obj in databaseObjects)
-        {
-            foreach (var reference in obj.References)
-            {
-                reference.ReferencedObject.ReferencedBy.Add(reference);
-            }
+            databaseObject.References.Add(reference);
+
+            referencedObject.ReferencedBy.Add(reference);
         }
     }
 }

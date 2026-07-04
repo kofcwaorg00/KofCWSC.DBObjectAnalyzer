@@ -20,6 +20,10 @@ public class ExcelExporter
 
         CreateDatabaseObjectsWorksheet(workbook, analysis);
 
+        CreateDependenciesWorksheet(workbook, analysis);
+
+        CreateReferencedByWorksheet(workbook, analysis);
+
         CreateCandidatesWorksheet(workbook, analysis);
 
         CreateSourceReferencesWorksheet(workbook, analysis);
@@ -82,24 +86,26 @@ public class ExcelExporter
         ws.Title("Database Objects");
 
         ws.Headers(
-            "Schema",
-            "Object",
-            "Type",
-            "References",
-            "Candidate");
+    "Object",
+    "Type",
+    "API References",
+    "SQL Outbound",
+    "SQL Inbound",
+    "Candidate");
 
-        foreach (var obj in analysis.DatabaseObjects)
+        foreach (var obj in analysis.DatabaseObjects.OrderBy(o => o.FullName))
         {
             ws.Row(
-                obj.Schema,
-                obj.Name,
-                obj.DisplayType,
-                obj.SourceReferenceCount,
-                obj.IsCandidateForDeletion ? "Yes" : "No");
+    obj.FullName,
+    obj.DisplayType,
+    obj.SourceReferenceCount,
+    obj.SqlReferenceCount,
+    obj.ReferencedByCount,
+    obj.IsCandidateForDeletion ? "Yes" : "No");
 
             ws.HighlightStatus(
                 obj.IsCandidateForDeletion,
-                5);
+                6);
         }
 
         ws.Finish();
@@ -114,18 +120,20 @@ public class ExcelExporter
         ws.Title("Deletion Candidates");
 
         ws.Headers(
-            "Schema",
-            "Object",
-            "Type",
-            "References");
+    "Object",
+    "Type",
+    "API References",
+    "SQL Outbound",
+    "SQL Inbound");
 
-        foreach (var obj in analysis.Candidates)
+        foreach (var obj in analysis.Candidates.OrderBy(o => o.FullName))
         {
             ws.Row(
-                obj.Schema,
-                obj.Name,
-                obj.DisplayType,
-                obj.SourceReferenceCount);
+    obj.FullName,
+    obj.DisplayType,
+    obj.SourceReferenceCount,
+    obj.SqlReferenceCount,
+    obj.ReferencedByCount);
         }
 
         ws.Finish();
@@ -156,6 +164,74 @@ public class ExcelExporter
                     reference.LineNumber,
                     reference.ReferenceType,
                     reference.LineText);
+            }
+        }
+
+        ws.Finish();
+    }
+    private static void CreateDependenciesWorksheet(
+    XLWorkbook workbook,
+    AnalysisResults analysis)
+    {
+        var ws = new ExcelWorksheet(workbook, "Dependencies");
+
+        ws.Title("SQL Dependencies");
+
+        ws.Headers(
+    "Referencing Object",
+    "Referencing Type",
+    "Referenced Object",
+    "Referenced Type",
+    "Dependency Type",
+    "Line");
+
+        foreach (var obj in analysis.DatabaseObjects
+            .OrderBy(o => o.FullName))
+        {
+            foreach (var reference in obj.References
+                .OrderBy(r => r.ReferencedObject.FullName))
+            {
+                ws.Row(
+    obj.FullName,
+    obj.DisplayType,
+    reference.ReferencedObject.FullName,
+    reference.ReferencedObject.DisplayType,
+    reference.DependencyType,
+    reference.LineNumber);
+            }
+        }
+
+        ws.Finish();
+    }
+    private static void CreateReferencedByWorksheet(
+    XLWorkbook workbook,
+    AnalysisResults analysis)
+    {
+        var ws = new ExcelWorksheet(workbook, "Referenced By");
+
+        ws.Title("Objects Referenced By");
+
+        ws.Headers(
+    "Object",
+    "Object Type",
+    "Referenced By",
+    "Caller Type",
+    "Dependency Type",
+    "Line");
+
+        foreach (var obj in analysis.DatabaseObjects
+            .OrderBy(o => o.FullName))
+        {
+            foreach (var reference in obj.ReferencedBy
+                .OrderBy(r => r.ReferencingObject.FullName))
+            {
+                ws.Row(
+    obj.FullName,
+    obj.DisplayType,
+    reference.ReferencingObject.FullName,
+    reference.ReferencingObject.DisplayType,
+    reference.DependencyType,
+    reference.LineNumber);
             }
         }
 

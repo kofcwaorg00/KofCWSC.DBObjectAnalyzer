@@ -112,6 +112,9 @@ dependencyAnalyzer.Analyze(databaseObjects);
 Console.WriteLine("Dependency analysis complete.");
 Console.WriteLine();
 
+Console.WriteLine(dependencyAnalyzer.Statistics);
+Console.WriteLine();
+
 //
 // Analyze Candidates
 //
