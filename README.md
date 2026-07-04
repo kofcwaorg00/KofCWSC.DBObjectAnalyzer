@@ -1,5 +1,4 @@
 # KofCWSC.DBObjectAnalyzer
-I'd be happy to. In fact, I think this should become the **User Guide** for V2.0. One of the things that impressed me while we were building this is that the workbook isn't just a report—it has become an **interactive analysis tool**. The key is understanding how to use each worksheet.
 
 ---
 
